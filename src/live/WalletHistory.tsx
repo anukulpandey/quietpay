@@ -1,0 +1,11 @@
+import { useState } from 'react';
+import { formatUnits, type Address } from 'viem';
+import { RefreshCw } from 'lucide-react';
+import { shortAddress } from '../lib/address';
+import { publicClient, type LiveSession } from './session';
+import { readWalletActivity, type ReceiptRow } from './history';
+export default function WalletHistory({session,address}:{session:LiveSession;address:Address}){
+ const [rows,setRows]=useState<ReceiptRow[]>();const [before,setBefore]=useState<bigint>();const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+ async function load(older=false){setBusy(true);setError('');try{const data=await readWalletActivity(publicClient,session.sdk,address,older?before:undefined);setRows(old=>older?[...(old??[]),...data.rows]:data.rows);setBefore(data.fromBlock?data.fromBlock-1n:undefined);}catch(e){setError(e instanceof Error?e.message:'Unable to read Fuji receipts.');}finally{setBusy(false);}}
+ return <div className="chain-history"><h3>Your on-chain receipts</h3><p className="small-text muted">Read directly from Fuji, 1,000 blocks at a time. Incoming amounts decrypt with your wallet key.</p><button className="text-link" disabled={busy} onClick={()=>load()}><RefreshCw size={12}/>{busy?'Reading Fuji…':'Refresh receipts'}</button>{error&&<p className="error-box">{error}</p>}{rows?.length===0&&<p className="live-result">No activity in this block range. Load older blocks to continue.</p>}{rows?.map((row,index)=><div className="chain-history-row" key={`${row.hash}-${row.direction}-${index}`}><div><strong>{row.direction==='minted'?'Test tokens minted':row.direction==='received'?'Received from':'Sent to'} {row.direction!=='minted'&&shortAddress(row.peer)}</strong><small>Block {row.block.toString()} · Confirmed</small>{row.error&&<small>{row.error}</small>}</div><span>{row.amount!==undefined?`${formatUnits(row.amount,session.decimals)} ${session.symbol}`:'Encrypted'}</span><a href={`https://testnet.snowtrace.io/tx/${row.hash}`} target="_blank" rel="noreferrer" aria-label="View confirmed transaction">↗</a></div>)}{rows&&before!==undefined&&<button className="text-link" disabled={busy} onClick={()=>load(true)}>Load older blocks</button>}</div>;
+}

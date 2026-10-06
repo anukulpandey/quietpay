@@ -1,0 +1,21 @@
+import { useState } from 'react';
+import { formatUnits, type Address, type Hash } from 'viem';
+import { Plus, ArrowRight, X } from 'lucide-react';
+import { Modal } from '../components/Modal';
+import { Status } from '../components/Shared';
+import { validateBatch, type LivePayment } from './batch';
+
+const blank=():LivePayment=>({id:crypto.randomUUID(),to:'',amount:'',status:'ready'});
+export default function LiveBatch({address,decimals,symbol,balance,rows,setRows,busy,blocked,onPay}:{address:Address;decimals:number;symbol:string;balance:bigint|undefined;rows:LivePayment[];setRows:(rows:LivePayment[])=>void;busy:boolean;blocked:boolean;onPay:()=>Promise<void>}){
+ const [review,setReview]=useState<bigint>();const [error,setError]=useState('');
+ const started=rows.some(row=>row.status!=='ready');const finished=rows.length>0&&rows.every(row=>row.status==='confirmed');
+ const frozen=busy||blocked||started;
+ function update(id:string,field:'to'|'amount',value:string){setRows(rows.map(row=>row.id===id?{...row,[field]:value}:row));}
+ return <div className="chain-history"><h3>Pay your team on-chain</h3><p className="small-text muted">Each recipient gets an encrypted transfer and a confirmed Fuji receipt. Drafts stay in this session.</p>
+ {!rows.length&&<p className="live-result">Add registered recipient wallets to start a payment run.</p>}
+ {rows.map((row,index)=>started?<div className="live-batch-receipt" key={row.id}><div><strong>{row.amount} {symbol}</strong><Status value={row.status}/></div><small className="mono">{row.to}</small>{row.hash&&<a href={`https://testnet.snowtrace.io/tx/${row.hash}`} target="_blank" rel="noreferrer">Confirmed receipt ↗</a>}{row.error&&<p className="error-box">{row.error}</p>}</div>:<div className="live-batch-row" key={row.id}><label className="field">Recipient {index+1}<input aria-label={`Recipient ${index+1} wallet`} value={row.to} placeholder="0x…" disabled={frozen} onChange={e=>update(row.id,'to',e.target.value.trim())}/></label><label className="field">Amount ({symbol})<input aria-label={`Recipient ${index+1} amount`} inputMode="decimal" value={row.amount} placeholder="0.00" disabled={frozen} onChange={e=>update(row.id,'amount',e.target.value)}/></label><button aria-label={`Remove recipient ${index+1}`} className="icon-button" disabled={frozen} onClick={()=>setRows(rows.filter(item=>item.id!==row.id))}><X size={15}/></button></div>)}
+ {error&&<p className="error-box" role="alert">{error}</p>}
+ <div className="live-batch-actions">{!started&&<button className="button secondary" disabled={frozen||rows.length>=20} onClick={()=>setRows([...rows,blank()])}><Plus size={14}/>Add recipient</button>}{!finished&&rows.length>0&&<button className="button primary" disabled={busy||blocked||balance===undefined} onClick={()=>{try{setError('');setReview(validateBatch(rows,address,decimals,balance!));}catch(e){setError(e instanceof Error?e.message:'Invalid payment run.');}}}>{started?'Review remaining payments':'Review payment run'}<ArrowRight size={14}/></button>}{finished&&<button className="button secondary" disabled={busy||blocked} onClick={()=>setRows([blank()])}>Start another run</button>}</div>
+ {review!==undefined&&<Modal title="Review on-chain payment run" onClose={()=>setReview(undefined)} wide><div className="review-summary"><span className="eyebrow">AVALANCHE FUJI · REAL TESTNET TRANSACTIONS</span><strong>{formatUnits(review,decimals)} <small>{symbol}</small></strong><p>{rows.filter(row=>row.status!=='confirmed').length} remaining recipients · wallet approval per transfer</p></div><div className="review-list">{rows.filter(row=>row.status!=='confirmed').map(row=><div key={row.id}><span className="mono">{row.to}</span><b>{row.amount} {symbol}</b></div>)}</div><div className="notice"><p>Payments execute one at a time. A failure pauses the run; confirmed payments are skipped on retry. Keep this tab open until your wallet returns a transaction hash.</p></div><div className="modal-actions"><button className="button secondary" onClick={()=>setReview(undefined)}>Back</button><button className="button primary" disabled={busy||blocked} onClick={()=>{setReview(undefined);void onPay();}}>Approve in wallet<ArrowRight size={14}/></button></div></Modal>}
+ </div>;
+}

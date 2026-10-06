@@ -1,0 +1,1 @@
+{"repository":"https://github.com/ava-labs/EncryptedERC","commit":"8dc98cd4d63ad3aa6d86b70b8f4bbcd70f1e8be1","solc":"0.8.27","optimizerRuns":200,"verifiers":"contracts/prod","mode":"standalone","chainId":43113}
