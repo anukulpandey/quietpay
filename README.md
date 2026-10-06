@@ -1,5 +1,7 @@
 # QuietPay
 
+**Live app:** [quietpay.vercel.app](https://quietpay.vercel.app)
+
 Private team payments using the official Avalanche EncryptedERC contracts and SDK. The app runs exclusively in its **on-chain Avalanche Fuji workspace**. Wallet connection, contracts, balances, payments, receipts, and auditor access all use the Fuji integration.
 
 ## What is integrated
@@ -49,6 +51,12 @@ The chain integration test creates ephemeral local test accounts, deploys all ei
 7. Back in the owner wallet, unlock and open **Test-token owner tools**. Set a registered auditor, then mint 10,000 QTEST to the owner. QTEST and Fuji AVAX are test assets with no real value. The auditor can be the owner for a quick test, or a separate registered wallet.
 8. Review a single payment or add recipient wallets to an on-chain run. Approve each transaction in the wallet. Transfers are sequential, not atomic: a later failure does not undo earlier confirmed payments.
 9. Connect a recipient to unlock its balance and **Refresh receipts**. Connect the designated auditor to decrypt recent activity.
+
+## Website deployment
+
+The frontend is hosted on Vercel at https://quietpay.vercel.app. `vercel.json` selects the Vite build and `dist` output; `.vercelignore` excludes local build artifacts, browser captures and environment files from CLI uploads. Bundled proof files and the deployment manifest are served from the same origin.
+
+Hosting the frontend does not deploy the contracts. Connect a funded Fuji wallet to deploy a token, or join an existing verified deployment. Browser-saved deployment configuration and pending transaction records are specific to the site origin; localhost data does not automatically appear on the hosted site.
 
 ## Recovery and privacy
 
